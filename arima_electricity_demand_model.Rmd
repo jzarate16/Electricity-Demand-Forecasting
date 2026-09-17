@@ -1,0 +1,822 @@
+---
+title: "apartado 3"
+author: "JesusZarateRenet21338"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+library(forecast)
+library(dygraphs)
+library(lubridate)
+library(xts) #para poder construir las series temporales
+library(htmlwidgets)
+
+library(ggplot2)
+library(scales)
+```
+
+
+```{r } 
+#representación de los datos por horas 
+datos= read.table("demanda_PENIN.txt",sep = ";",header= FALSE,skip=1) 
+#View(datos)
+colnames(datos)= c("fecha", "demhora1", "demhora2", "demhora3", "demhora4","demhora5","demhora6","demhora7","demhora8","demhora9","demhora10","demhora11","demhora12","demhora13","demhora14","demhora15","demhora16","demhora17","demhora18","demhora19","demhora20","demhora21","demhora22","demhora23","demhora24")
+f= ymd(datos$fecha) #así R puede leer bien las fechas
+demhora12= xts(datos$demhora12, f)
+dygraph(demhora12)
+dygraph(demhora12, main = "Demanda en MWh a las 12")
+
+dyRangeSelector(dygraph(demhora12, main = "Demanda en MWh durante 1 semana"))
+
+```
+
+```{r}
+print((datos[datos$fecha == 20190124, ]))
+print((datos[datos$fecha == 20190424, ]))
+print((datos[datos$fecha == 20190724, ]))
+print((datos[datos$fecha == 20191024, ]))
+
+```
+```{r}
+#apartado 3.3.2 cambios de hora
+demhora2= xts(datos$demhora2, f)
+dygraph(demhora2, main= "Demanda en MWh a las 2 de la mañana")
+
+demhora3= xts(datos$demhora3, f)
+dygraph(demhora3, main= "Demanda en MWh a las 3 de la mañana")
+
+#cambios de hora (esto se ejecuta solo una vez)
+#correción hora 2 
+#filtramos en la base de datos y vemos que las fehcas problemmáticas son: 25 de octubre de 2015, 30 de octubre de 2016, 29 de octubre de 2017 y 28 de octubre de 2018
+datos[datos$fecha== 20151025,"demhora2"]=(datos[datos$fecha== 20151025,"demhora2"])/2
+datos[datos$fecha== 20161030,"demhora2"]=(datos[datos$fecha== 20161030,"demhora2"])/2
+datos[datos$fecha== 20171029,"demhora2"]=(datos[datos$fecha== 20171029,"demhora2"])/2
+datos[datos$fecha== 20181028,"demhora2"]=(datos[datos$fecha== 20181028,"demhora2"])/2
+#correccion hora 3
+#para las siguientes fechas: 30 de octubre de 2011,28 de octubre de 2012, 27 de octubre de 2013 ;dividimos entre dos
+datos[datos$fecha== 20121028,"demhora3"]=(datos[datos$fecha== 20121028,"demhora3"])/2
+datos[datos$fecha== 20131027,"demhora3"]=(datos[datos$fecha== 20131027,"demhora3"])/2
+datos[datos$fecha== 20111030,"demhora3"]=(datos[datos$fecha== 20111030,"demhora3"])/2
+
+
+
+#en estas fechas, por el cambio de hora a las 3 de la mañana(hora 3), el valor es 
+datos[datos$fecha== 20110327,"demhora3"]=(datos[datos$fecha== 20110327,"demhora2"]+datos[datos$fecha== 20110327,"demhora4"])/2
+datos[datos$fecha== 20120325,"demhora3"]=(datos[datos$fecha== 20120325,"demhora2"]+datos[datos$fecha== 20120325,"demhora4"])/2
+datos[datos$fecha== 20130331,"demhora3"]=(datos[datos$fecha== 20130331,"demhora2"]+datos[datos$fecha== 20130331,"demhora4"])/2
+datos[datos$fecha== 20140330,"demhora3"]=(datos[datos$fecha== 20140330,"demhora2"]+datos[datos$fecha== 20140330,"demhora4"])/2
+datos[datos$fecha== 20150329,"demhora3"]=(datos[datos$fecha== 20150329,"demhora2"]+datos[datos$fecha== 20150329,"demhora4"])/2
+datos[datos$fecha== 20160327,"demhora3"]=(datos[datos$fecha== 20160327,"demhora2"]+datos[datos$fecha== 20160327,"demhora4"])/2
+datos[datos$fecha== 20170326,"demhora3"]=(datos[datos$fecha== 20170326,"demhora2"]+datos[datos$fecha== 20170326,"demhora4"])/2
+datos[datos$fecha== 20180325,"demhora3"]=(datos[datos$fecha== 20180325,"demhora2"]+datos[datos$fecha== 20180325,"demhora4"])/2
+
+``` 
+```{r}
+#por si quieres visualizar otra vez que no hay errores
+demhora2= xts(datos$demhora2, f)
+dygraph(demhora2, main= "Demanda en MWh a las 2 de la mañana CORREGIDA")
+
+demhora3= xts(datos$demhora3, f)
+dygraph(demhora3, main= "Demanda en MWh a las 3 de la mañana CORREGIDA")
+```
+```{r}
+#representación de la hora 10 
+demhora10= xts(datos$demhora10, f)
+dygraph(demhora10, main="Demanda en MWh a las 10 de la mañana")
+```
+```{r}
+#aplicamos el logaritmo a la serie
+
+#tsdisplay(demhora10)
+y10= log(demhora10) #para reducir la variabilidad
+plot(y10,   main = "Evolución de la demanda eléctrica a las 10:00",
+  sub  = "Serie transformada mediante logaritmo natural",
+  xlab = "Año",
+  ylab = "log(Demanda eléctrica en MWh)",
+  col  = "blue",
+  lwd  = 0.1) #quizas se haya estabilizado ligeramente la varianza
+
+#sobre el logaritmo aplicamos la diferencia
+
+u=diff(y10)
+#plot(diff(y10)) #se consigue una esperanza mucho más constante que la serie original
+# acf(diff(y10), na.action = na.pass) #me da problemas
+
+plot(
+  diff(y10),
+  main = "Primera diferencia de la demanda eléctrica (10:00)",
+  xlab = "Fecha",
+  ylab = "Δ log(Demanda)",
+  col="olivedrab3",
+  lwd  = 0.1
+)
+abline(h = 0, col = "red", lwd = 2)
+
+```
+```{r}
+#funciones ACF y PACF
+#acf(diff(y10)) # na.action = na.pass
+#pacf(diff(y10))
+acf(diff(y10), 50, na.action = na.pass)
+pacf(diff(y10), 50, na.action = na.pass)
+
+
+```
+
+
+```{r}
+#corregimos la seasonalidad
+y10seasonal= diff(u,7)
+plot(y10seasonal)
+acf(y10seasonal,50, na.action = na.pass)
+pacf(y10seasonal,50, na.action = na.pass)
+
+```
+```{r}
+# vale, ya tenemos , segun las funciones de autocorrelación anteriores , los diferentes posibles parametros , vamos a hora a probar cada modelo 
+m10_1= arima( log(demhora10), order = c(0,1,1), seasonal= list(order=c(0,1,1), period=7))
+summary(m10_1)
+m10_2= arima( log(demhora10), order = c(0,1,1), seasonal= list(order=c(0,1,2), period=7))
+summary(m10_2)
+m10_3= arima( log(demhora10), order = c(0,1,2), seasonal= list(order=c(0,1,1), period=7))
+summary(m10_3)
+m10_4= arima( log(demhora10), order = c(0,1,2), seasonal= list(order=c(0,1,2), period=7))
+summary(m10_4)
+
+```
+
+```{r}
+summary(m10_3)
+checkresiduals(m10_3)
+```
+
+```{r}
+#3.3.5 modelos para cada una de las horas (mediante un bucle)
+#mbh = modelo bucle horario
+#f ya lo definiste recuerda
+# for (h in 1:24){
+   
+ # bh= xts(datos$demhora10, f)
+  #mbh= arima( log(bh), order= c(0,1,2), seasonal = list (order=c(0,1,2)), period = 7)
+  #print(c("Hora",h))
+  #print(mbh)
+#}
+for (h in 1:24) {
+  col <- paste0("demhora", h)        # Nombre de la columna
+  bh <- xts(datos[[col]], f)         # Serie temporal con fechas f
+  mbh <- arima(log(bh),              # Modelo ARIMA con log transformado
+               order = c(0,1,2), 
+               seasonal = list(order = c(0,1,1), period = 7))
+  cat("\n--- Hora", h, "---\n")
+  print(summary(mbh))
+}
+
+
+```
+```{r}
+#apartado 4.1 : añadimos el regresor "festivos"
+x_fes = read.table("regresores_penin.txt",header=TRUE,sep=";")
+
+#creamos nueva matriz y añadimos las columnas que nos interesan 
+matriz_festivos = x_fes[, c( "fest_nac_06EN"   ,   "fest_nac_01MY","fest_nac_15AG",    "fest_nac_12OC" ,     "fest_nac_01NO"   ,   "fest_nac_06DI",      "fest_nac_24DI"   ,   "fest_nac_31DI")]
+head(matriz_festivos)  #verificamos la estructura
+```
+
+```{r}
+#creamos otro festivo ; 25 de diciembre Navidad
+
+# Creamos otro festivo: 25 de diciembre (Navidad)
+x_fes$fest_nac_25DI <- 0  # columna nueva con ceros
+
+# Ponemos 1 en las fechas que son 25 de diciembre
+x_fes$fest_nac_25DI[x_fes$mes == 12 & x_fes$dia == 25] = 1
+# Añadimos las nuevas columnas a la matriz de festivos
+matriz_festivos$fest_nac_25DI <- x_fes$fest_nac_25DI
+
+```
+
+```{r}
+#creamos otro festivo: 1 de enero año nuevo
+
+x_fes$fest_nac_01EN=0 
+x_fes$fest_nac_01EN[x_fes$mes == 1 & x_fes$dia == 1] = 1
+matriz_festivos$fest_nac_01EN = x_fes$fest_nac_01EN
+
+```
+
+```{r}
+#creamos otro festivo: 8 de diciembre (Inmaculada)
+x_fes$fest_nac_08DI=0 
+x_fes$fest_nac_08DI[x_fes$mes == 12 & x_fes$dia == 8] = 1
+matriz_festivos$fest_nac_08DI = x_fes$fest_nac_08DI
+
+```
+
+```{r}
+#creamos otro festivo: Viernes Santo
+x_fes$fest_nac_VS=0
+
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 22 & x_fes$ano== 2011] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 6 & x_fes$ano== 2012] = 1
+x_fes$fest_nac_VS[x_fes$mes == 3 & x_fes$dia == 29 & x_fes$ano== 2013] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 18 & x_fes$ano== 2014] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 3 & x_fes$ano== 2015] = 1
+x_fes$fest_nac_VS[x_fes$mes == 3 & x_fes$dia == 25 & x_fes$ano== 2016] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 14 & x_fes$ano== 2017] = 1
+x_fes$fest_nac_VS[x_fes$mes == 3 & x_fes$dia == 30 & x_fes$ano== 2018] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 19 & x_fes$ano== 2019] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 10 & x_fes$ano== 2020] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 2 & x_fes$ano== 2021] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 15 & x_fes$ano== 2022] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 7 & x_fes$ano== 2023] = 1
+x_fes$fest_nac_VS[x_fes$mes == 3 & x_fes$dia == 29 & x_fes$ano== 2024] = 1
+x_fes$fest_nac_VS[x_fes$mes == 4 & x_fes$dia == 18 & x_fes$ano== 2025] = 1
+
+
+matriz_festivos$fest_nac_VS = x_fes$fest_nac_VS
+
+```
+
+```{r}
+#añadimos el regresor, que Dios reparta asuerte
+m10_3_festivos= arima( log(demhora10), order = c(0,1,2), seasonal= list(order=c(0,1,1), period=7),xreg = matriz_festivos)
+summary(m10_3_festivos)
+
+```
+```{r}
+# para finalizar el apartado de festivos como regresorss
+
+
+# Paso 1: copiar la columna fest_regionales
+matriz_festivos$fest_regionales = x_fes$fest_regionales
+# Paso 2: reemplazar todos los 1 por 0 en fest_regionales
+matriz_festivos$fest_regionales[matriz_festivos$fest_regionales == 1] = 0
+
+
+
+```
+
+
+```{r}
+#modelo con regresores festivos DEFINITIVO
+m10_3_festivosDEF= arima( log(demhora10), order = c(0,1,2), seasonal= list(order=c(0,1,1), period=7),xreg = matriz_festivos)
+summary(m10_3_festivosDEF)
+
+
+```
+
+```{r}
+#bucle para ver las 24 h
+
+for (h in 1:24) {
+  col <- paste0("demhora", h)        # Nombre de la columna
+  bh <- xts(datos[[col]], f)         # Serie temporal con fechas f
+  mbh <- arima(log(bh),              # Modelo ARIMA con log transformado
+               order = c(0,1,2), 
+               seasonal = list(order = c(0,1,1), period = 7),xreg= matriz_festivos)
+  cat("\n--- Hora", h, "---\n")
+  print(summary(mbh))
+}
+
+```
+
+```{r}
+# apartado 4.2 : ahora hay que añadir las temperaturas
+
+  #1 leer datos y estandarizar 
+  x_tem = read.table("meteorologia_penin.txt",header=TRUE,sep=";")
+  zmin = (x_tem$tmin- min(x_tem$tmin))/(max(x_tem$tmin)- min(x_tem$tmin))
+  zmax = (x_tem$tmax- min(x_tem$tmax))/(max(x_tem$tmax)- min(x_tem$tmax))
+  zmin2 = zmin^2
+  zmax2 = zmax^2
+  
+  plot(x_tem$tmax, datos$demhora10, xlab="Temperatura(ºC)", ylab= "Demanda hora 10")
+
+
+```
+
+```{r}
+plot(x_tem$tmax, datos$demhora10, xlab="Temperatura(ºC)", ylab= "Demanda en MWh hora 10")
+
+```
+
+```{r}
+#se observan diferentes nubes, por eso vamos a diferenciar los días de la semana respecto de sabados y domingos
+w= weekdays(ymd(x_tem$fecha))
+sabado= (w== "sábado")
+domingo= (w== "domingo")
+
+
+
+plot(x_tem$tmax, datos$demhora10, xlab="Temperatura(ºC)", ylab= "Demanda en MWh hora 10")
+
+points( x_tem$tmax[sabado],datos$demhora10[sabado], col="green") #para marcar los colores
+points( x_tem$tmax[domingo],datos$demhora10[domingo], col="blue")
+
+```
+
+```{r}
+#lo metemos todo en la matriz 
+matriz_festytem = cbind(matriz_festivos, zmax, zmin, zmax2, zmin2)
+
+```
+
+```{r}
+#modelado arima con temperaturas y festivos
+m10_3_festytem= arima( log(demhora10), order = c(0,1,2), seasonal= list(order=c(0,1,1), period=7),xreg = matriz_festytem)
+summary(m10_3_festytem)
+
+```
+```{r}
+#generamos bucle para los 24 modelos 
+
+for (h in 1:24) {
+  col <- paste0("demhora", h)        # Nombre de la columna
+  bh <- xts(datos[[col]], f)         # Serie temporal con fechas f
+  mbh <- arima(log(bh),              # Modelo ARIMA con log transformado
+               order = c(0,1,2), 
+               seasonal = list(order = c(0,1,1), period = 7),xreg= matriz_festytem)
+  cat("\n--- Hora", h, "---\n")
+  print(summary(mbh))
+}
+
+```
+
+```{r}
+#ahora con la radiación, último paso
+
+#misma base de datos, x_tem
+
+
+#plot(x_tem$rad_PENIN, datos$demhora16, xlab="Radiación Solar", ylab= "Demanda en MWh hora 10")
+
+
+zrad = (x_tem$rad_PENIN- min(x_tem$rad_PENIN))/(max(x_tem$rad_PENIN)- min(x_tem$rad_PENIN))
+
+zrad2 = zrad^2
+
+```
+
+```{r}
+#grafica interesante
+w <- weekdays(ymd(x_tem$fecha))
+
+laborable <- !(w %in% c("sábado", "domingo"))
+sabado    <-  w == "sábado"
+domingo   <-  w == "domingo"
+plot(x_tem$rad_PENIN[laborable],
+     datos$demhora10[laborable],
+     xlab = "Radiación Solar",
+     ylab = "Demanda en MWh (hora 10)",
+     pch  = 16,
+     col  = "grey")
+points(x_tem$rad_PENIN[sabado],
+       datos$demhora10[sabado],
+       col = "green",
+       pch = 16)
+
+points(x_tem$rad_PENIN[domingo],
+       datos$demhora10[domingo],
+       col = "blue",
+       pch = 16)
+legend("topright",
+       legend = c("Laborables", "Sábados", "Domingos"),
+       col    = c("grey", "green", "blue"),
+       pch    = 16,
+       bty    = "n")
+
+```
+
+```{r}
+#lo metemos todo en la matriz 
+matriz_festytemyrad = cbind(matriz_festytem, zrad, zrad2)
+
+#modelado arima con temperaturas y festivos
+m10_3_festytemyrad= arima( log(demhora10), order = c(0,1,2), seasonal= list(order=c(0,1,1), period=7),xreg = matriz_festytemyrad)
+summary(m10_3_festytemyrad)
+
+
+```
+
+```{r}
+
+#bucle para todos los modelos 
+for (h in 1:24) {
+  col <- paste0("demhora", h)        # Nombre de la columna
+  bh <- xts(datos[[col]], f)         # Serie temporal con fechas f
+  mbh <- arima(log(bh),              # Modelo ARIMA con log transformado
+               order = c(0,1,2), 
+               seasonal = list(order = c(0,1,1), period = 7),xreg= matriz_festytemyrad)
+  cat("\n--- Hora", h, "---\n")
+  print(summary(mbh))
+}
+
+```
+
+```{r}
+#quizas para terminar
+checkresiduals(m10_3_festytemyrad)
+
+```
+
+```{r}
+#ultima parte ; coeficientes por trimestres , vamos allá
+
+fecha <- as.Date(as.character(datos$fecha), format = "%Y%m%d")
+
+#paso 1: crear trimestre
+trimestre <- paste0(
+  lubridate::year(fecha), 
+  "T", 
+  lubridate::quarter(fecha)
+)
+
+#paso 2 : convertirlo en factor
+trimestre <- factor(trimestre)
+#paso 3: crear interacciones
+xreg_rad_trimestral <- model.matrix(~ zrad:trimestre - 1)
+
+#paso4 : quitar la zrad y zrad2
+matriz_base_sin_rad <- matriz_festytemyrad[, 
+  !colnames(matriz_festytemyrad) %in% c("zrad", "zrad2")
+]
+
+#paso5: 
+xreg_total <- cbind(
+  matriz_base_sin_rad,
+  xreg_rad_trimestral
+)
+#paso 6: 
+m10_3_festytemyrad_trim <- arima(
+  log(demhora10),
+  order = c(0,1,2),
+  seasonal = list(order = c(0,1,1), period = 7),
+  xreg = xreg_total   # 👈 nueva matriz
+)
+
+summary(m10_3_festytemyrad_trim)
+
+
+```
+
+```{r}
+trimestre_2021_safe <- trimestre_2021
+levels(trimestre_2021_safe) <- c(levels(trimestre_2021_safe), "PRE2021")
+trimestre_2021_safe[is.na(trimestre_2021_safe)] <- "PRE2021"
+trimestre_2021_safe <- factor(trimestre_2021_safe)
+xreg_rad_trim2021_full <- model.matrix(~ zrad:trimestre_2021_safe - 1)
+
+# eliminar columnas PRE2021
+xreg_rad_trim2021 <- xreg_rad_trim2021_full[
+  , !grepl("PRE2021", colnames(xreg_rad_trim2021_full))
+]
+matriz_base_sin_rad <- matriz_festytemyrad[
+  , !colnames(matriz_festytemyrad) %in% c("zrad", "zrad2")
+]
+xreg_total <- cbind(
+  matriz_base_sin_rad,
+  xreg_rad_trim2021
+)
+
+
+bh <- xts(datos$demhora16, f)
+
+fit_trim2021 <- arima(
+  log(bh),
+  order = c(0,1,2),
+  seasonal = list(order = c(0,1,1), period = 7),
+  xreg = xreg_total
+)
+
+summary(fit_trim2021)
+
+
+
+```
+
+
+```{r}
+fecha <- as.Date(as.character(datos$fecha), format = "%Y%m%d")
+#paso 1: crear trimestre
+trimestre <- paste0(
+  lubridate::year(fecha), 
+  "T", 
+  lubridate::quarter(fecha))
+#paso 2 : convertirlo en factor
+trimestre <- factor(trimestre)
+
+trimestre_2021_safe <- trimestre_2021
+levels(trimestre_2021_safe) <- c(levels(trimestre_2021_safe), "PRE2021")
+trimestre_2021_safe[is.na(trimestre_2021_safe)] <- "PRE2021"
+trimestre_2021_safe <- factor(trimestre_2021_safe)
+xreg_rad_trim2021_full <- model.matrix(~ zrad:trimestre_2021_safe - 1)
+# eliminar columnas PRE2021
+xreg_rad_trim2021 <- xreg_rad_trim2021_full[
+  , !grepl("PRE2021", colnames(xreg_rad_trim2021_full))]
+matriz_base_sin_rad <- matriz_festytemyrad[
+  , !colnames(matriz_festytemyrad) %in% c("zrad", "zrad2")]
+xreg_total <- cbind(
+  matriz_base_sin_rad,
+  xreg_rad_trim2021)
+
+#bucle para todos los modelos 
+for (h in 1:24) {
+  col <- paste0("demhora", h)        # Nombre de la columna
+  bh <- xts(datos[[col]], f)         # Serie temporal con fechas f
+  mbh <- arima(log(bh),              # Modelo ARIMA con log transformado
+               order = c(0,1,2), 
+               seasonal = list(order = c(0,1,1), period = 7),xreg= xreg_total)
+  cat("\n--- Hora", h, "---\n")
+  print(summary(mbh))
+}
+
+
+
+```
+
+```{r}
+#ultima parte del tfg ; graficar el autoconumo
+zrad_p <- matriz_festytemyrad$zrad
+fecha_all <- as.Date(as.character(datos$fecha), format = "%Y%m%d")
+ini <- as.Date("2021-01-01")
+idx_2021 <- which(fecha_all >= ini)
+zrad_p  <- as.numeric(matriz_festytemyrad$zrad[idx_2021])
+fecha_p <- fecha_all[idx_2021]
+
+# ====== 1) Trimestre de cada día ======
+library(lubridate)
+
+tri_lab <- paste0(year(fecha_p), "T", quarter(fecha_p))
+niveles_tri <- c(
+  paste0("2021T", 1:4),
+  paste0("2022T", 1:4),
+  paste0("2023T", 1:4),
+  paste0("2024T", 1:4),
+  paste0("2025T", 1:2)
+)
+tri <- factor(tri_lab, levels = niveles_tri)
+stopifnot(!any(is.na(tri)))   # chequeo de seguridad
+
+tri_idx <- as.integer(tri)    # 1..18
+
+# ====== Autoconsumo horario (días x 24) ======
+
+Tlen <- length(zrad_p)
+
+A_hour <- matrix(NA, nrow = Tlen, ncol = 24)
+colnames(A_hour) <- paste0("h", 1:24)
+
+for (t in 1:Tlen) {
+  A_hour[t, ] <- Delta[, tri_idx[t]] * zrad_p[t]
+}
+
+
+```
+
+```{r}
+#vamos a guardar todos los ecoficientes deltas
+# ====== Guardar modelos por hora ======
+fits <- vector("list", 24)
+
+for (h in 1:24) {
+
+  col <- paste0("demhora", h)
+  bh  <- xts(datos[[col]], f)   # f = vector de fechas (el que ya usabas)
+
+  fits[[h]] <- arima(
+    log(bh),
+    order = c(0,1,2),
+    seasonal = list(order = c(0,1,1), period = 7),
+    xreg = xreg_total
+  )
+}
+
+# ====== Matriz Delta (24 x 18) ======
+
+Delta <- matrix(
+  NA,
+  nrow = 24,
+  ncol = length(niveles_tri),
+  dimnames = list(paste0("h", 1:24), niveles_tri) )
+for (h in 1:24) {
+  cf <- coef(fits[[h]])
+  nm <- names(cf)
+  # quedarnos solo con coeficientes zrad:trimestre
+  keep <- grepl("^zrad:trimestre", nm)
+  cf_z <- cf[keep]
+  nm_z <- nm[keep]
+  # extraer "2021T1", "2021T2", etc.
+  tri_name <- sub(".*(20[0-9]{2}T[1-4]).*", "\\1", nm_z)
+  Delta[h, tri_name] <- as.numeric(cf_z)
+}
+
+```
+
+
+```{r}
+#ultimo : autoconsumo energético 
+
+fecha_all <- as.Date(as.character(datos$fecha), format = "%Y%m%d")
+
+ini <- as.Date("2021-01-01")
+fin <- as.Date("2025-05-31")   # cambia a 2025-05-20 si ese fue tu corte real
+
+idx <- which(fecha_all >= ini & fecha_all <= fin)
+   #length(idx);  debería dar 1611
+# columnas de demanda horaria
+cols_S <- paste0("demhora", 1:24)
+
+# matriz S recortada
+S_cut <- as.matrix(datos[idx, cols_S])
+
+Autoconsumo_E <- - S_cut * A_hour
+
+```
+
+```{r}
+#ahora vamos a graficar lo annterior 
+#el autoconsumo horario estimado 
+
+Autoconsumo_E_day <- rowSums(abs(Autoconsumo_E))
+library(xts)
+
+Autoconsumo_E_day_xts <- xts(
+  Autoconsumo_E_day,
+  order.by = fecha_p
+)
+Autoconsumo_E_day_GWh <- Autoconsumo_E_day_xts / 10000
+plot(
+  Autoconsumo_E_day_GWh,
+  main = "Autoconsumo estimado horario en el sistema eléctrico peninsular",
+  xlab = "Año",
+  ylab = "Autoconsumo (GWh)",
+  col = "darkgreen",
+  lwd = 1
+)
+
+
+
+```
+
+```{r}
+Autoconsumo_day_MWh <- rowSums(abs(Autoconsumo_E))
+library(xts)
+
+Autoconsumo_day_xts <- xts(
+  Autoconsumo_day_MWh,
+  order.by = fecha_p
+)
+library(zoo)
+
+Autoconsumo_month_MWh <- aggregate(
+  Autoconsumo_day_xts,
+  as.yearmon,
+  sum
+)
+Autoconsumo_month_GWh <- Autoconsumo_month_MWh / 1000
+
+library(ggplot2)
+
+df_month <- data.frame(
+  fecha = as.Date(time(Autoconsumo_month_GWh)),
+  autoconsumo = as.numeric(Autoconsumo_month_GWh)
+)
+
+ggplot(df_month, aes(x = fecha, y = autoconsumo)) +
+  geom_line(
+    color = "darkgreen",
+    linewidth = 1
+  ) +
+  geom_point(
+    color = "darkgreen",
+    size = 3
+  ) +
+  labs(
+    title = "Autoconsumo mensual estimado en el sistema eléctrico peninsular",
+    x = "Año",
+    y = "Autoconsumo (GWh)"
+  ) +
+  theme_minimal(base_size = 13)
+
+
+
+```
+```{r}
+# Autoconsumo trimestral (MWh)
+Autoconsumo_trim_MWh <- aggregate(
+  Autoconsumo_day_xts,
+  as.yearqtr,
+  sum
+)
+
+# Pasar a GWh
+Autoconsumo_trim_GWh <- Autoconsumo_trim_MWh / 1000
+
+library(ggplot2)
+
+df_trim <- data.frame(
+  fecha = as.Date(time(Autoconsumo_trim_GWh)),
+  autoconsumo = as.numeric(Autoconsumo_trim_GWh)
+)
+
+ggplot(df_trim, aes(x = fecha, y = autoconsumo)) +
+  geom_col(
+    fill = "darkgreen",
+    color = "black",
+    width = 70
+  ) +
+  labs(
+    title = "Autoconsumo trimestral estimado en el sistema eléctrico peninsular",
+    x = "Año",
+    y = "Autoconsumo (GWh)"
+  ) +
+  theme_minimal(base_size = 13)
+
+```
+
+```{r}
+#autoconsumo anual 
+# columnas de demanda horaria
+cols_dem <- paste0("demhora", 1:24)
+library(xts)
+
+Autoconsumo_year_MWh <- period.apply(
+  Autoconsumo_day_xts,
+  INDEX = endpoints(Autoconsumo_day_xts, on = "years"),
+  FUN = sum
+)
+Autoconsumo_year_GWh <- Autoconsumo_year_MWh / 1000
+library(ggplot2)
+
+df_year <- data.frame(
+  año = format(as.Date(time(Autoconsumo_year_GWh)), "%Y"),
+  autoconsumo = as.numeric(Autoconsumo_year_GWh)
+)
+ggplot(df_year, aes(x = factor(año), y = autoconsumo)) +
+  geom_col(
+    fill = "darkgreen",
+    color = "black"
+  ) +
+  labs(
+    title = "Autoconsumo anual estimado en el sistema eléctrico peninsular",
+    x = "Año",
+    y = "Autoconsumo (GWh)"
+  ) +
+  theme_minimal(base_size = 13)
+
+
+```
+
+```{r}
+
+
+# demanda diaria total (MWh)
+Demanda_day_MWh <- rowSums(datos[idx_2021, cols_dem])
+
+Demanda_day_xts <- xts(
+  Demanda_day_MWh,
+  order.by = fecha_p
+)
+library(zoo)
+
+Demanda_month_GWh <- aggregate(
+  Demanda_day_xts,
+  as.yearmon,
+  sum
+) / 1000
+Porc_autoconsumo <- 100 * (
+  Autoconsumo_month_GWh / Demanda_month_GWh
+)
+df_pct <- data.frame(
+  fecha = as.Date(time(Porc_autoconsumo)),
+  porcentaje = as.numeric(Porc_autoconsumo)
+)
+library(ggplot2)
+
+ggplot(df_pct, aes(x = fecha, y = porcentaje)) +
+  geom_area(
+    fill = "darkgreen",
+    alpha = 0.35
+  ) +
+  geom_line(
+    color = "darkgreen",
+    linewidth = 1
+  ) +
+  labs(
+    title = "% de autoconsumo mensual respecto al total de la demanda",
+    x = "Mes",
+    y = "Porcentaje (%)"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
